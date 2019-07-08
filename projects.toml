@@ -1,0 +1,25 @@
+# Example project config
+
+# This path should point to a directory that will hold all the migrated git repositories
+base_path = "C:/path/to/git/dir"
+
+# This is the path to your users.txt for transforming SVN users to Git signatures
+users_path = "C:/path/to/users.txt"
+
+# This is the path to a bash executable (should be installed if you have Git Bash, which is shipped with recent versions of Git)
+# You may or may not need to change this path
+bash_path = "C:/Program Files/Git/usr/bin/bash.exe"
+
+# An array of projects to convert
+# Each will be in a separate thread, however performance hasn't been tested at scale
+# Probably limit a batch conversion to 5 or less at a time if possible
+[[projects]]
+svn = "https://path/to/svn/archiving_service"
+name = "archiving_service"
+std = true
+
+[[projects]]
+# Without standard layout, we specify trunk
+svn = "https://path/to/svn/billstatus_service/trunk"
+name = "billstatus_service"
+std = false
