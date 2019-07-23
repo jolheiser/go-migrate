@@ -24,14 +24,29 @@ type Config struct {
 	Projects  []Project `toml:"projects"`
 }
 
+type Queue struct {
+	wg sync.WaitGroup
+	Complete int
+	Total int
+}
+
+func (q *Queue) Add(delta int) {
+	q.wg.Add(delta)
+	q.Total++
+}
+
+func (q *Queue) Done() {
+	q.wg.Done()
+	q.Complete++
+}
+
 var (
-	wg     sync.WaitGroup
+	queue  = &Queue{}
 	mu     sync.Mutex
 	config Config
 )
 
 func main() {
-
 	_, _ = toml.DecodeFile("projects.toml", &config)
 
 	if err := os.Chdir(config.BasePath); err != nil {
@@ -45,16 +60,19 @@ func main() {
 	}
 
 	for _, project := range config.Projects {
-		wg.Add(1)
+		queue.Add(1)
 		go migrate(project)
 	}
 
-	wg.Wait()
+	queue.wg.Wait()
 	fmt.Println("Migration finished...")
 }
 
 func migrate(project Project) {
-	defer wg.Done()
+	defer func() {
+		queue.Done()
+		fmt.Printf("[%d/%d] Finished migrating %s\n", queue.Complete, queue.Total, project.Name)
+	}()
 
 	if _, err := os.Stat(path.Join(config.BasePath, project.Name)); err == nil {
 		fmt.Printf("%s already exists, skipping...\n", project.Name)
@@ -136,8 +154,6 @@ func migrate(project Project) {
 	if err := old.Run(); err != nil {
 		fmt.Printf("Could not delete the %s branch: %v\n", oldBranch, err)
 	}
-
-	fmt.Printf("Finished migrating %s\n", project.Name)
 
 	if err := os.Chdir(config.BasePath); err != nil {
 		fmt.Printf("Could not change directory: %v\n", err)
